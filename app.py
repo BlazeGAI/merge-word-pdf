@@ -35,26 +35,19 @@ def process_zip_file(zip_file):
         with tempfile.TemporaryDirectory() as tempdir:
             z.extractall(tempdir)
             processed_docs = []
-            error_occurred = False
-
-            for folder in os.listdir(tempdir):
-                folder_path = os.path.join(tempdir, folder)
-                if os.path.isdir(folder_path):
-                    files_in_folder = [file for file in os.listdir(folder_path) if file.endswith('.docx') or file.endswith('.pdf')]
-                    
-                    if len(files_in_folder) > 2:
-                        st.error(f"More than two documents found in the folder '{folder}'. Only the first Word and first PDF documents will be processed.")
-                        error_occurred = True
-                    
-                    for file in files_in_folder:
-                        file_path = os.path.join(folder_path, file)
+            
+            # Loop through all extracted files
+            for root, dirs, files in os.walk(tempdir):
+                for file in files:
+                    if file.endswith('.docx') or file.endswith('.pdf'):
+                        file_path = os.path.join(root, file)
                         with open(file_path, 'rb') as f:
                             if file.endswith('.pdf'):
-                                processed_docs.append(convert_pdf_to_word(f.read()))
+                                processed_docs.append(convert_pdf_to_word(f.read()))  # Convert PDF to Word
                             else:
-                                processed_docs.append(f.read())
+                                processed_docs.append(f.read())  # Read Word document bytes
 
-            return processed_docs, error_occurred
+            return processed_docs
 
 # Function to process direct file uploads
 def process_files(files):
