@@ -31,9 +31,9 @@ def convert_pdf_to_word(pdf_bytes):
 
 # Function to process files from a ZIP
 def process_zip_file(uploaded_file):
-    # Convert the uploaded file to a bytes-like object if it's not already
-    zip_bytes = uploaded_file.read()  # Ensure the file is read as bytes
-    with ZipFile(BytesIO(zip_bytes), 'r') as z:
+    # Ensure the file is read as bytes
+    zip_bytes = uploaded_file.read()  # Streamlit's file_uploader returns an object, so we read it as bytes
+    with ZipFile(BytesIO(zip_bytes), 'r') as z:  # Convert to a BytesIO stream for ZipFile
         with tempfile.TemporaryDirectory() as tempdir:
             z.extractall(tempdir)
             processed_docs = []
