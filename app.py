@@ -31,25 +31,34 @@ def convert_pdf_to_word(pdf_bytes):
 
 # Function to process files from a ZIP
 def process_zip_file(uploaded_file):
-    # Ensure the file is read as bytes
-    zip_bytes = uploaded_file.read()  # Streamlit's file_uploader returns an object, so we read it as bytes
-    with ZipFile(BytesIO(zip_bytes), 'r') as z:  # Convert to a BytesIO stream for ZipFile
-        with tempfile.TemporaryDirectory() as tempdir:
-            z.extractall(tempdir)
-            processed_docs = []
-            
-            # Loop through all extracted files
-            for root, dirs, files in os.walk(tempdir):
-                for file in files:
-                    if file.endswith('.docx') or file.endswith('.pdf'):
-                        file_path = os.path.join(root, file)
-                        with open(file_path, 'rb') as f:
-                            if file.endswith('.pdf'):
-                                processed_docs.append(convert_pdf_to_word(f.read()))  # Convert PDF to Word
-                            else:
-                                processed_docs.append(f.read())  # Read Word document bytes
+    try:
+        # Ensure the file is read as bytes
+        zip_bytes = uploaded_file.read()  # Streamlit's file_uploader returns an object, so we read it as bytes
+        with ZipFile(BytesIO(zip_bytes), 'r') as z:  # Convert to a BytesIO stream for ZipFile
+            with tempfile.TemporaryDirectory() as tempdir:
+                z.extractall(tempdir)
+                processed_docs = []
+                error_occurred = False  # Set error flag to False initially
 
-            return processed_docs
+                # Loop through all extracted files
+                for root, dirs, files in os.walk(tempdir):
+                    for file in files:
+                        try:
+                            if file.endswith('.docx') or file.endswith('.pdf'):
+                                file_path = os.path.join(root, file)
+                                with open(file_path, 'rb') as f:
+                                    if file.endswith('.pdf'):
+                                        processed_docs.append(convert_pdf_to_word(f.read()))  # Convert PDF to Word
+                                    else:
+                                        processed_docs.append(f.read())  # Read Word document bytes
+                        except Exception as e:
+                            st.error(f"Error processing file {file}: {str(e)}")  # Log specific file error
+                            error_occurred = True  # Set error flag to True if an error occurs
+                return processed_docs, error_occurred  # Return documents and the error flag
+
+    except Exception as e:
+        st.error(f"Error processing ZIP file: {str(e)}")  # Log error with ZIP processing
+        return [], True  # Return empty list and True for error flag if an error occurs
 
 # Function to process direct file uploads
 def process_files(files):
