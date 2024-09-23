@@ -30,8 +30,10 @@ def convert_pdf_to_word(pdf_bytes):
         return output.getvalue()
 
 # Function to process files from a ZIP
-def process_zip_file(zip_file):
-    with ZipFile(zip_file, 'r') as z:
+def process_zip_file(uploaded_file):
+    # Convert the uploaded file to a bytes-like object if it's not already
+    zip_bytes = uploaded_file.read()  # Ensure the file is read as bytes
+    with ZipFile(BytesIO(zip_bytes), 'r') as z:
         with tempfile.TemporaryDirectory() as tempdir:
             z.extractall(tempdir)
             processed_docs = []
