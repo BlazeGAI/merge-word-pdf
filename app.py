@@ -6,13 +6,23 @@ import tempfile
 from io import BytesIO
 from pdf2docx import Converter
 
-# Function to combine Word documents
-def combine_word_documents(docs):
+# Function to combine Word documents with folder name as student name
+def combine_word_documents(docs_with_names):
     combined_doc = Document()
-    for doc in docs:
-        sub_doc = Document(BytesIO(doc))
+
+    for name, doc_bytes in docs_with_names:
+        # Add the student's name (folder name) at the start of each submission
+        combined_doc.add_paragraph(f"STUDENT NAME: {name}")
+        combined_doc.add_paragraph("")  # Add an empty line for spacing
+
+        # Process the document
+        sub_doc = Document(BytesIO(doc_bytes))
         for element in sub_doc.element.body:
             combined_doc.element.body.append(element)
+
+        # Add a page break after each submission (optional)
+        combined_doc.add_page_break()
+
     return combined_doc
 
 # Function to convert PDF to Word document
@@ -29,45 +39,46 @@ def convert_pdf_to_word(pdf_bytes):
         output.seek(0)
         return output.getvalue()
 
-# Function to process files from a ZIP
+# Function to process files from a ZIP and use folder name as submission name
 def process_zip_file(uploaded_file):
     try:
         # Ensure the file is read as bytes
-        zip_bytes = uploaded_file.read()  # Streamlit's file_uploader returns an object, so we read it as bytes
-        with ZipFile(BytesIO(zip_bytes), 'r') as z:  # Convert to a BytesIO stream for ZipFile
+        zip_bytes = uploaded_file.read()
+        with ZipFile(BytesIO(zip_bytes), 'r') as z:
             with tempfile.TemporaryDirectory() as tempdir:
                 z.extractall(tempdir)
                 processed_docs = []
-                error_occurred = False  # Set error flag to False initially
+                error_occurred = False
 
-                # Loop through all extracted files
+                # Loop through all extracted folders and files
                 for root, dirs, files in os.walk(tempdir):
+                    folder_name = os.path.basename(root)  # Get the folder name
                     for file in files:
                         try:
                             if file.endswith('.docx') or file.endswith('.pdf'):
                                 file_path = os.path.join(root, file)
                                 with open(file_path, 'rb') as f:
                                     if file.endswith('.pdf'):
-                                        processed_docs.append(convert_pdf_to_word(f.read()))  # Convert PDF to Word
+                                        processed_docs.append((folder_name, convert_pdf_to_word(f.read())))  # Use folder name
                                     else:
-                                        processed_docs.append(f.read())  # Read Word document bytes
+                                        processed_docs.append((folder_name, f.read()))  # Use folder name
                         except Exception as e:
-                            st.error(f"Error processing file {file}: {str(e)}")  # Log specific file error
-                            error_occurred = True  # Set error flag to True if an error occurs
-                return processed_docs, error_occurred  # Return documents and the error flag
+                            st.error(f"Error processing file {file} in folder {folder_name}: {str(e)}")
+                            error_occurred = True
+                return processed_docs, error_occurred
 
     except Exception as e:
-        st.error(f"Error processing ZIP file: {str(e)}")  # Log error with ZIP processing
-        return [], True  # Return empty list and True for error flag if an error occurs
+        st.error(f"Error processing ZIP file: {str(e)}")
+        return [], True
 
 # Function to process direct file uploads
 def process_files(files):
     processed_docs = []
     for file in files:
         if file.type == 'application/pdf':
-            processed_docs.append(convert_pdf_to_word(file.getvalue()))
+            processed_docs.append(('Direct Upload', convert_pdf_to_word(file.getvalue())))
         else:
-            processed_docs.append(file.getvalue())
+            processed_docs.append(('Direct Upload', file.getvalue()))
     return processed_docs
 
 # Initialize session state variables
@@ -83,15 +94,15 @@ upload_choice = st.radio("Choose your upload method", ('Zip File', 'Word Files')
 if upload_choice == 'Zip File':
     uploaded_file = st.file_uploader("Upload ZIP file", type=['zip'])
     if st.button('Combine Documents from ZIP') and uploaded_file:
-        word_docs, error_occurred = process_zip_file(uploaded_file)
-        if word_docs and not error_occurred:
-            st.session_state['combined_document'] = combine_word_documents(word_docs)
+        docs_with_names, error_occurred = process_zip_file(uploaded_file)
+        if docs_with_names and not error_occurred:
+            st.session_state['combined_document'] = combine_word_documents(docs_with_names)
 
 elif upload_choice == 'Word Files':
     uploaded_files = st.file_uploader("Upload Word files", accept_multiple_files=True, type=['docx'])
     if st.button('Combine Word Documents') and uploaded_files:
-        word_docs = process_files(uploaded_files)
-        st.session_state['combined_document'] = combine_word_documents(word_docs)
+        docs_with_names = process_files(uploaded_files)
+        st.session_state['combined_document'] = combine_word_documents(docs_with_names)
 
 # Export options
 if st.session_state['combined_document']:
