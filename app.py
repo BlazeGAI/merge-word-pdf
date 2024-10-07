@@ -23,7 +23,7 @@ def combine_word_documents(docs_with_names):
         for element in sub_doc.element.body:
             combined_doc.element.body.append(element)
 
-        # Add a page break after each submission (optional)
+        # After both name and contents are added, then add a page break
         combined_doc.add_page_break()
 
     return combined_doc
