@@ -6,6 +6,14 @@ import tempfile
 from io import BytesIO
 from pdf2docx import Converter
 
+# Function to extract text from Word documents
+def extract_text_from_word(doc_bytes):
+    doc = Document(BytesIO(doc_bytes))
+    full_text = []
+    for paragraph in doc.paragraphs:
+        full_text.append(paragraph.text)
+    return '\n'.join(full_text)
+
 # Function to combine Word documents with folder name as student name
 def combine_word_documents(docs_with_names):
     combined_doc = Document()
@@ -18,12 +26,11 @@ def combine_word_documents(docs_with_names):
         combined_doc.add_paragraph(f"STUDENT NAME: {truncated_name}")
         combined_doc.add_paragraph("")  # Add an empty line for spacing
 
-        # Process the document
-        sub_doc = Document(BytesIO(doc_bytes))
-        for element in sub_doc.element.body:
-            combined_doc.element.body.append(element)
+        # Extract the text from the Word document and add it to the combined doc
+        doc_text = extract_text_from_word(doc_bytes)
+        combined_doc.add_paragraph(doc_text)
 
-        # After both name and contents are added, then add a page break
+        # Add a page break after each student's submission
         combined_doc.add_page_break()
 
     return combined_doc
