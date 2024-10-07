@@ -11,8 +11,11 @@ def combine_word_documents(docs_with_names):
     combined_doc = Document()
 
     for name, doc_bytes in docs_with_names:
-        # Add the student's name (folder name) at the start of each submission
-        combined_doc.add_paragraph(f"STUDENT NAME: {name}")
+        # Truncate the name at the first underscore (if present)
+        truncated_name = name.split('_')[0]
+
+        # Add the student's name (truncated) at the start of each submission
+        combined_doc.add_paragraph(f"STUDENT NAME: {truncated_name}")
         combined_doc.add_paragraph("")  # Add an empty line for spacing
 
         # Process the document
